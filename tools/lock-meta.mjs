@@ -1,4 +1,25 @@
-<!DOCTYPE html><!--  Static lock page generated from the Webflow export.  -->
+#!/usr/bin/env node
+import { createCipheriv, pbkdf2Sync, randomBytes } from "node:crypto";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
+
+const password = process.env.META_PAGE_PASSWORD;
+const sourcePath = process.argv[2] || "meta.html";
+const payloadPath = "protected/meta.enc.json";
+const lockPagePath = "meta.html";
+const cleanLockPagePath = "meta/index.html";
+
+if (!password) {
+  console.error("Set META_PAGE_PASSWORD before running this script.");
+  process.exit(1);
+}
+
+function toBase64(value) {
+  return Buffer.from(value).toString("base64");
+}
+
+function buildLockPage() {
+  return `<!DOCTYPE html><!--  Static lock page generated from the Webflow export.  -->
 <html data-wf-page="6246213970916e3f6e1db2d5" data-wf-site="5db20e130ef7f30799118140">
 <head>
   <meta charset="utf-8">
@@ -95,11 +116,11 @@ document.addEventListener("DOMContentLoaded", function(){
   }
 
   function addBaseHref(html) {
-    if (/<base\s/i.test(html)) {
+    if (/<base\\s/i.test(html)) {
       return html;
     }
-    return html.replace(/<head(\s[^>]*)?>/i, function(match) {
-      return match + "\n  <base href=\"/\">";
+    return html.replace(/<head(\\s[^>]*)?>/i, function(match) {
+      return match + "\\n  <base href=\\"/\\">";
     });
   }
 
@@ -126,7 +147,7 @@ document.addEventListener("DOMContentLoaded", function(){
       throw new Error("This browser cannot unlock the protected page.");
     }
 
-    var response = await fetch("/protected/meta.enc.json", { cache: "no-store" });
+    var response = await fetch("/${payloadPath}", { cache: "no-store" });
     if (!response.ok) {
       throw new Error("The protected page could not be loaded.");
     }
@@ -191,3 +212,41 @@ document.addEventListener("DOMContentLoaded", function(){
   </script>
 </body>
 </html>
+`;
+}
+
+const plaintext = await readFile(sourcePath, "utf8");
+
+if (plaintext.includes('id="meta-lock-form"')) {
+  console.error(`${sourcePath} already looks like the generated lock page.`);
+  process.exit(1);
+}
+
+const salt = randomBytes(16);
+const iv = randomBytes(12);
+const iterations = 310000;
+const key = pbkdf2Sync(password, salt, iterations, 32, "sha256");
+const cipher = createCipheriv("aes-256-gcm", key, iv);
+const encrypted = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
+const tag = cipher.getAuthTag();
+
+const payload = {
+  version: 1,
+  cipher: "AES-256-GCM",
+  kdf: {
+    name: "PBKDF2",
+    hash: "SHA-256",
+    iterations
+  },
+  salt: toBase64(salt),
+  iv: toBase64(iv),
+  data: toBase64(Buffer.concat([encrypted, tag]))
+};
+
+await mkdir(dirname(payloadPath), { recursive: true });
+await mkdir(dirname(cleanLockPagePath), { recursive: true });
+await writeFile(payloadPath, `${JSON.stringify(payload, null, 2)}\n`);
+await writeFile(lockPagePath, buildLockPage());
+await writeFile(cleanLockPagePath, buildLockPage());
+
+console.log(`Locked ${sourcePath} into ${payloadPath}.`);
