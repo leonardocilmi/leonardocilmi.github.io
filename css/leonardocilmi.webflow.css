@@ -3459,6 +3459,17 @@ h4 {
   padding-top: 0;
 }
 
+@media screen and (min-width: 992px) {
+  .gallery-image-wrapper {
+    overflow: hidden;
+    text-align: right;
+  }
+
+  .image-7 {
+    transform: translateX(clamp(96px, 12vw, 180px));
+  }
+}
+
 .gallery-image {
   width: 100%;
 }
