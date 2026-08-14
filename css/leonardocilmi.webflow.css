@@ -2319,6 +2319,72 @@ h4 {
   font-size: 65px;
   font-weight: 700;
   line-height: 66px;
+  perspective: 900px;
+}
+
+.intro-line, .intro-actions {
+  display: block;
+}
+
+.intro-line, .intro-actions .bigtextlink {
+  opacity: 0;
+  filter: blur(12px);
+  transform: translate3d(0, 32px, 0) rotateX(18deg) skewY(1.5deg);
+  transform-origin: left bottom;
+  animation: intro-stagger-in .85s cubic-bezier(.16, 1, .3, 1) forwards;
+  will-change: opacity, filter, transform;
+}
+
+.intro-actions .bigtextlink {
+  display: inline-block;
+}
+
+.intro-line-name {
+  animation-delay: .06s;
+}
+
+.intro-line-role {
+  animation-delay: .18s;
+}
+
+.intro-actions .email {
+  animation-delay: .34s;
+}
+
+.intro-actions .linkedin {
+  animation-delay: .44s;
+}
+
+.intro-actions .insta {
+  animation-delay: .54s;
+}
+
+@keyframes intro-stagger-in {
+  0% {
+    opacity: 0;
+    filter: blur(12px);
+    transform: translate3d(0, 32px, 0) rotateX(18deg) skewY(1.5deg);
+  }
+
+  62% {
+    opacity: 1;
+    filter: blur(1px);
+  }
+
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translate3d(0, 0, 0) rotateX(0) skewY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-line, .intro-actions .bigtextlink {
+    opacity: 1;
+    filter: none;
+    transform: none;
+    animation: none;
+  }
 }
 
 .home-hero-text.pd {
